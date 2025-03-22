@@ -142,7 +142,7 @@
             const q = query(
                 collection(db, "messages"), 
                 orderBy("timestamp", "desc"),
-                limit(50) // Increased limit to show more messages
+                limit(5) // Limit to the latest 5 messages
             );
             
             onSnapshot(q, (snapshot) => {
@@ -159,12 +159,8 @@
                 });
                 
                 // Process in chronological order
-                messages.reverse().forEach((message, index) => {
-                    // Check if message is already in DOM
-                    const existingMsg = document.getElementById(`msg-${message.id}`);
-                    if (!existingMsg) {
-                        addMessageToChat(message, index === 0);
-                    }
+                messages.reverse().forEach((message) => {
+                    addMessageToChat(message);
                 });
                 
                 // Scroll to bottom
