@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKXYrbwZzKUFO1dY4W1i6s6vYDhm4GThE",
+            authDomain: "jo10-a9f93.firebaseapp.com",
+            projectId: "jo10-a9f93",
+            storageBucket: "jo10-a9f93.appspot.com",
+            messagingSenderId: "475608534890",
+            appId: "1:475608534890:web:98bd97f3199ed4ab6fdf13",
+            measurementId: "G-M7TLFLKQ9F"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("registerBtn").addEventListener("click", async () => {
+                const name = document.getElementById("registerName").value;
+                const email = document.getElementById("regEmail").value;
+                const password = document.getElementById("regPassword").value;
+                
+                // Add button loading state
+                const button = document.getElementById("registerBtn");
+                button.innerHTML = '<span class="spinner"></span> Creating Account...';
+                button.classList.add("loading");
+                
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    // Save user details to Firestore
+                    await setDoc(doc(db, "users", user.uid), {
+                        name: name,
+                        email: email,
+                        uid: user.uid
+                    });
+                    showSuccessMessage("Registration successful");
+                    setTimeout(() => {
+                        window.location.href = "chat.html";
+                    }, 1500);
+                } catch (error) {
+                    button.innerHTML = 'Register';
+                    button.classList.remove("loading");
+                    showErrorMessage(error.message);
+                }
+            });
+            
+            // Input focus effects
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', () => {
+                    input.parentElement.classList.add('focused');
+                });
+                input.addEventListener('blur', () => {
+                    if (!input.value) {
+                        input.parentElement.classList.remove('focused');
+                    }
+                });
+                
+                // Check if input has value on page load
+                if (input.value) {
+                    input.parentElement.classList.add('focused');
+                }
+            });
+        });
+        
+        function showErrorMessage(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.opacity = '1';
+            errorElement.style.transform = 'translateY(0)';
+            
+            setTimeout(() => {
+                errorElement.style.opacity = '0';
+                errorElement.style.transform = 'translateY(-10px)';
+            }, 5000);
+        }
+        
+        function showSuccessMessage(message) {
+            const successElement = document.getElementById('success-message');
+            successElement.textContent = message;
+            successElement.style.opacity = '1';
+            successElement.style.transform = 'translateY(0)';
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --primary-color: #4a6cf7;
+            --secondary-color: #864eff;
+            --text-color: #2d3748;
+            --light-text: #6b7280;
+            --bg-color: #ffffff;
+            --input-bg: #f8fafc;
+            --error-color: #ef4444;
+            --success-color: #10b981;
+            --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px rgba(0, 0, 0, 0.15);
+            --transition-normal: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            animation: gradientBG 15s ease infinite;
+            background-size: 400% 400%;
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .register-container {
+            background-color: var(--bg-color);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg), 0 25px 50px rgba(0, 0, 0, 0.1);
+            width: 450px;
+            text-align: center;
+            animation: fadeInUp 0.8s ease-out;
+            transform: perspective(1000px) rotateY(0deg);
+            transition: var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .register-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .register-container:hover::before {
+            opacity: 1;
+            animation: ripple 2s infinite;
+        }
+
+        @keyframes ripple {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-5%, -5%); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .register-container:hover {
+            transform: perspective(1000px) rotateY(-5deg) translateY(-5px);
+            box-shadow: 15px 30px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            margin-bottom: 30px;
+            color: var(--text-color);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            position: relative;
+            display: inline-block;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            width: 50%;
+            height: 3px;
+            bottom: -10px;
+            left: 25%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 10px;
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .register-container:hover h2::after {
+            transform: scaleX(1);
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 16px;
+            transition: var(--transition-normal);
+            box-shadow: var(--shadow-sm);
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.15);
+            outline: none;
+            background-color: var(--bg-color);
+        }
+
+        .input-group.focused label {
+            transform: translateY(-25px) scale(0.8);
+            color: var(--primary-color);
+        }
+
+        .input-group label {
+            position: absolute;
+            left: 20px;
+            top: 16px;
+            color: var(--light-text);
+            pointer-events: none;
+            transition: var(--transition-normal);
+            transform-origin: left;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-weight: 500;
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition-normal);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 1px;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: var(--transition-normal);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(74, 108, 247, 0.3);
+        }
+
+        button:hover::before {
+            left: 100%;
+            transition: 0.7s;
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        button.loading {
+            background: linear-gradient(135deg, #8e9efc, #a98eff);
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        a {
+            display: block;
+            margin-top: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: var(--transition-normal);
+            font-weight: 500;
+            position: relative;
+        }
+
+        a::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: var(--primary-color);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s ease;
+        }
+
+        a:hover {
+            color: var(--secondary-color);
+        }
+
+        a:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        #error-message {
+            color: var(--error-color);
+            margin-top: 15px;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: var(--transition-normal);
+        }
+
+        #success-message {
+            color: var(--success-color);
+            margin-top: 15px;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: var(--transition-normal);
+        }
+
+        /* Card shine effect */
+        .register-container::after {
+            content: '';
+            position: absolute;
+            top: -150%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                rgba(255, 255, 255, 0.3),
+                rgba(255, 255, 255, 0)
+            );
+            transform: rotate(30deg);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        .register-container:hover::after {
+            opacity: 1;
+            animation: shine 1.5s ease-in-out;
+        }
+
+        @keyframes shine {
+            0% { transform: translateY(-100%) rotate(30deg); }
+            100% { transform: translateY(100%) rotate(30deg); }
+        }
+
+        /* Password strength indicator */
+        .password-strength {
+            height: 5px;
+            border-radius: 5px;
+            margin-top: 8px;
+            transition: var(--transition-normal);
+            background: #e5e7eb;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .password-strength span {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            border-radius: 5px;
+            transition: var(--transition-normal);
+            width: 0;
+        }
+
+        .weak { background-color: #f87171; width: 33.33%; }
+        .medium { background-color: #fbbf24; width: 66.66%; }
+        .strong { background-color: #34d399; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h2>Create Account</h2>
+        <div class="input-group">
+            <input type="text" id="registerName" required>
+            <label for="registerName">Full Name</label>
+        </div>
+        <div class="input-group">
+            <input type="email" id="regEmail" required>
+            <label for="regEmail">Email Address</label>
+        </div>
+        <div class="input-group">
+            <input type="password" id="regPassword" required>
+            <label for="regPassword">Password</label>
+            <div class="password-strength">
+                <span id="password-strength-indicator"></span>
+            </div>
+        </div>
+        <button id="registerBtn">Register</button>
+        <a href="login.html">Already have an account? Login</a>
+        <div id="error-message"></div>
+        <div id="success-message"></div>
+    </div>
+</body>
+</html>

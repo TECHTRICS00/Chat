@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="chat_style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, getDoc, Timestamp, limit } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKXYrbwZzKUFO1dY4W1i6s6vYDhm4GThE",
+            authDomain: "jo10-a9f93.firebaseapp.com",
+            projectId: "jo10-a9f93",
+            storageBucket: "jo10-a9f93.appspot.com",
+            messagingSenderId: "475608534890",
+            appId: "1:475608534890:web:98bd97f3199ed4ab6fdf13",
+            measurementId: "G-M7TLFLKQ9F"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUser = null;
+        let currentUserName = "";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // Loading overlay
+            const loader = document.getElementById("loader");
+            
+            // Check authentication state
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    // Get user details
+                    try {
+                        const userDoc = await getDoc(doc(db, "users", user.uid));
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            currentUserName = userData.name || "User";
+                            document.getElementById("user-name").textContent = currentUserName;
+                            
+                            // Create initial for avatar if no photo
+                            const userInitial = (userData.name ? userData.name[0] : "U").toUpperCase();
+                            document.getElementById("user-avatar-initial").textContent = userInitial;
+                        }
+                    } catch (error) {
+                        console.error("Error fetching user data:", error);
+                    }
+                    
+                    // Hide loader
+                    loader.classList.add("fade-out");
+                    setTimeout(() => {
+                        loader.style.display = "none";
+                    }, 500);
+                    
+                    // Setup chat functionality
+                    setupChat();
+                } else {
+                    // Redirect to login if not authenticated
+                    window.location.href = "login.html";
+                }
+            });
+
+            // Logout button
+            document.getElementById("logoutBtn").addEventListener("click", () => {
+                showDialog("Logout", "Are you sure you want to logout?", () => {
+                    signOut(auth).then(() => window.location.href = "login.html");
+                });
+            });
+
+            // Menu toggle
+            document.getElementById("menuBtn").addEventListener("click", () => {
+                document.getElementById("dropdown-menu").classList.toggle("show");
+            });
+
+            // Close dropdown when clicking outside
+            window.addEventListener("click", (event) => {
+                if (!event.target.matches('.menu-btn') && !event.target.matches('.menu-icon')) {
+                    const dropdown = document.getElementById("dropdown-menu");
+                    if (dropdown.classList.contains("show")) {
+                        dropdown.classList.remove("show");
+                    }
+                }
+            });
+
+            // Close dialogs
+            document.querySelectorAll(".dialog-close, .dialog-cancel").forEach(button => {
+                button.addEventListener("click", () => {
+                    document.getElementById("dialog-container").style.display = "none";
+                });
+            });
+
+            // Profile button
+            document.getElementById("profileBtn").addEventListener("click", () => {
+                window.location.href = "profile.html";
+            });
+
+            // Additional menu options
+            document.getElementById("changePasswordBtn").addEventListener("click", () => {
+                window.location.href = "change_password.html";
+            });
+
+            document.getElementById("privacyPolicyBtn").addEventListener("click", () => {
+                window.location.href = "privacy_policy.html";
+            });
+
+            document.getElementById("settingsBtn").addEventListener("click", () => {
+                window.location.href = "settings.html";
+            });
+        });
+
+        function setupChat() {
+            // Send message functionality
+            const messageInput = document.getElementById("messageInput");
+            const sendBtn = document.getElementById("sendBtn");
+
+            // Send with Enter key
+            messageInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Send with button click
+            sendBtn.addEventListener("click", sendMessage);
+
+            // Input animation
+            messageInput.addEventListener("input", () => {
+                if (messageInput.value.trim() !== "") {
+                    sendBtn.classList.add("active");
+                } else {
+                    sendBtn.classList.remove("active");
+                }
+            });
+
+            // Fetch messages
+            const q = query(
+                collection(db, "messages"), 
+                orderBy("timestamp", "desc"),
+                limit(50) // Increased limit to show more messages
+            );
+            
+            onSnapshot(q, (snapshot) => {
+                const chatBox = document.getElementById("chat-messages");
+                chatBox.innerHTML = ""; // Clear previous messages
+                
+                // Convert to array and reverse to get chronological order
+                const messages = [];
+                snapshot.forEach(doc => {
+                    messages.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                // Process in chronological order
+                messages.reverse().forEach((message, index) => {
+                    // Check if message is already in DOM
+                    const existingMsg = document.getElementById(`msg-${message.id}`);
+                    if (!existingMsg) {
+                        addMessageToChat(message, index === 0);
+                    }
+                });
+                
+                // Scroll to bottom
+                setTimeout(() => {
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }, 100);
+            });
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById("messageInput");
+            const message = messageInput.value.trim();
+            
+            if (message !== "") {
+                try {
+                    // Show sending state
+                    const pendingMsg = createMessageElement({
+                        text: message,
+                        uid: currentUser.uid,
+                        userName: currentUserName, // Use the currentUserName
+                        timestamp: Timestamp.now(),
+                        status: "sending",
+                        id: "pending-" + Date.now()
+                    }, true);
+                    
+                    // Clear input
+                    messageInput.value = "";
+                    document.getElementById("sendBtn").classList.remove("active");
+                    
+                    // Add to Firestore - include user name in the message data
+                    await addDoc(collection(db, "messages"), {
+                        text: message,
+                        uid: currentUser.uid,
+                        userName: currentUserName, // Store current user name with message
+                        timestamp: Timestamp.now(),
+                        status: "sent"
+                    });
+                    
+                    // Remove pending message (it will be replaced by the real one from the snapshot)
+                    if (pendingMsg) {
+                        setTimeout(() => {
+                            pendingMsg.classList.add("fade-out");
+                            setTimeout(() => {
+                                if (pendingMsg.parentNode) {
+                                    pendingMsg.parentNode.removeChild(pendingMsg);
+                                }
+                            }, 300);
+                        }, 300);
+                    }
+                } catch (error) {
+                    console.error("Error sending message:", error);
+                    alert("Failed to send message. Please try again.");
+                }
+            }
+        }
+
+        function addMessageToChat(message, isNew = false) {
+            const messageElement = createMessageElement(message, isNew);
+            const chatBox = document.getElementById("chat-messages");
+            chatBox.appendChild(messageElement);
+        }
+
+        function createMessageElement(message, animate = false) {
+            const isCurrentUser = message.uid === currentUser?.uid;
+            const messageElement = document.createElement("div");
+            messageElement.id = `msg-${message.id}`;
+            messageElement.classList.add("message");
+            
+            if (isCurrentUser) {
+                messageElement.classList.add("outgoing");
+            } else {
+                messageElement.classList.add("incoming");
+            }
+            
+            if (animate) {
+                messageElement.classList.add("animate-in");
+            }
+            
+            // Format timestamp
+            let formattedTime = "";
+            if (message.timestamp) {
+                const date = message.timestamp.toDate ? message.timestamp.toDate() : new Date(message.timestamp);
+                formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            
+            // Status icon (for outgoing messages)
+            let statusIcon = "";
+            if (isCurrentUser) {
+                const iconMap = {
+                    "sending": '<i class="fas fa-clock status-icon"></i>',
+                    "sent": '<i class="fas fa-check status-icon"></i>',
+                    "delivered": '<i class="fas fa-check-double status-icon"></i>',
+                    "read": '<i class="fas fa-check-double status-icon read"></i>'
+                };
+                statusIcon = iconMap[message.status || "sent"];
+            }
+            
+            // Always display username for all messages (Discord style)
+            const userName = message.userName || (isCurrentUser ? currentUserName : "User");
+            const usernameDisplay = `<div class="message-username">${userName}</div>`;
+                
+            messageElement.innerHTML = `
+                <div class="message-bubble">
+                    ${usernameDisplay}
+                    <div class="message-text">${message.text}</div>
+                    <div class="message-meta">
+                        <span class="message-time">${formattedTime}</span>
+                        ${statusIcon}
+                    </div>
+                </div>
+            `;
+            
+            return messageElement;
+        }
+
+        function showDialog(title, message, confirmCallback) {
+            const dialogContainer = document.getElementById("dialog-container");
+            const dialogTitle = document.getElementById("dialog-title");
+            const dialogMessage = document.getElementById("dialog-message");
+            const dialogConfirm = document.getElementById("dialog-confirm");
+            
+            dialogTitle.textContent = title;
+            dialogMessage.textContent = message;
+            dialogContainer.style.display = "flex";
+            
+            // Remove old event listeners
+            const newConfirmBtn = dialogConfirm.cloneNode(true);
+            dialogConfirm.parentNode.replaceChild(newConfirmBtn, dialogConfirm);
+            
+            // Add new event listener
+            newConfirmBtn.addEventListener("click", () => {
+                dialogContainer.style.display = "none";
+                if (confirmCallback) confirmCallback();
+            });
+        }
+    </script>
+
+    <style>
+        /* WhatsApp-like styling for messages */
+        .message {
+            display: flex;
+            margin: 8px 0;
+            max-width: 80%;
+            clear: both;
+        }
+
+        .message.incoming {
+            align-self: flex-start;
+            margin-right: auto;
+        }
+
+        .message.outgoing {
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .message-bubble {
+            padding: 8px 12px;
+            border-radius: 10px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .incoming .message-bubble {
+            background-color: #ffffff;
+            border-top-left-radius: 0; /* WhatsApp style */
+        }
+
+        .outgoing .message-bubble {
+            background-color: #dcf8c6; /* WhatsApp green */
+            border-top-right-radius: 0; /* WhatsApp style */
+        }
+
+        .message-username {
+            font-weight: bold;
+            font-size: 0.85em;
+            color: #075e54; /* WhatsApp dark green */
+            margin-bottom: 2px;
+            display: block; /* Ensure it's on its own line */
+        }
+
+        /* Discord-like styling for usernames */
+        .incoming .message-username {
+            color: #7289da; /* Discord blue */
+        }
+
+        .outgoing .message-username {
+            color: #43b581; /* Discord green */
+        }
+
+        .message-text {
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .message-meta {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            font-size: 11px;
+            color: #8c8c8c;
+        }
+
+        .chat-body {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            background-color: #e5ddd5; /* WhatsApp background */
+        }
+        
+        /* Fix for user avatar initial */
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #075e54;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Dropdown menu styling */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 10px;
+            top: 50px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f1f1f1;
+        }
+
+        .header-icon {
+            cursor: pointer;
+        }
+        
+        /* Animation for new messages */
+        .message.animate-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Fade out for pending messages */
+        .message.fade-out {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Logout button styling */
+        .dropdown-item#logoutBtn {
+            background-color: #ff4d4d;
+            color: white;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .dropdown-item#logoutBtn:hover {
+            background-color: #ff1a1a;
+            transform: scale(1.05);
+        }
+
+        .dropdown-item#logoutBtn:active {
+            background-color: #e60000;
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body>
+    <div id="loader">
+        <i class="fas fa-spinner fa-spin"></i>
+    </div>
+    <div id="dialog-container">
+        <div class="dialog">
+            <div id="dialog-title" class="dialog-title"></div>
+            <div id="dialog-message" class="dialog-message"></div>
+            <div class="dialog-buttons">
+                <button id="dialog-confirm" class="dialog-confirm">Confirm</button>
+                <button class="dialog-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-left">
+                <div id="user-avatar-initial" class="user-avatar"></div>
+                <div class="user-info">
+                    <div id="user-name" class="user-name">User</div>
+                    <div class="user-status">Online</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <i id="menuBtn" class="fas fa-ellipsis-v header-icon menu-btn"></i>
+                <div id="dropdown-menu" class="dropdown-menu">
+                    <button id="profileBtn" class="dropdown-item">Profile</button>
+                    <button id="changePasswordBtn" class="dropdown-item">Change Password</button>
+                    <button id="privacyPolicyBtn" class="dropdown-item">Privacy Policy</button>
+                    <button id="settingsBtn" class="dropdown-item">Settings</button>
+                    <button id="logoutBtn" class="dropdown-item">Logout</button>
+                </div>
+            </div>
+        </div>
+        <div id="chat-messages" class="chat-body"></div>
+        <div class="chat-footer">
+            <input id="messageInput" type="text" placeholder="Type a message">
+            <button id="sendBtn" class="send-btn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKXYrbwZzKUFO1dY4W1i6s6vYDhm4GThE",
+            authDomain: "jo10-a9f93.firebaseapp.com",
+            projectId: "jo10-a9f93",
+            storageBucket: "jo10-a9f93.appspot.com",
+            messagingSenderId: "475608534890",
+            appId: "1:475608534890:web:98bd97f3199ed4ab6fdf13",
+            measurementId: "G-M7TLFLKQ9F"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        document.addEventListener("DOMContentLoaded", () => {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        document.getElementById("profileName").value = userData.name || "";
+                        if (userData.photoURL) {
+                            document.getElementById("profileImage").src = userData.photoURL;
+                        }
+                    }
+                } else {
+                    window.location.href = "login.html";
+                }
+            });
+
+            document.getElementById("profileForm").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const name = document.getElementById("profileName").value;
+                const file = document.getElementById("profileImageInput").files[0];
+
+                if (file) {
+                    const storageRef = ref(storage, `profileImages/${auth.currentUser.uid}`);
+                    await uploadBytes(storageRef, file);
+                    const photoURL = await getDownloadURL(storageRef);
+                    await updateProfile(auth.currentUser, { displayName: name, photoURL });
+                    await updateDoc(doc(db, "users", auth.currentUser.uid), { name, photoURL });
+                } else {
+                    await updateProfile(auth.currentUser, { displayName: name });
+                    await updateDoc(doc(db, "users", auth.currentUser.uid), { name });
+                }
+
+                showSuccessMessage("Profile updated successfully");
+            });
+
+            document.getElementById("profileImageInput").addEventListener("change", (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        document.getElementById("profileImage").src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
+        function showSuccessMessage(message) {
+            const successElement = document.getElementById('success-message');
+            successElement.textContent = message;
+            successElement.style.opacity = '1';
+            successElement.style.transform = 'translateY(0)';
+
+            setTimeout(() => {
+                successElement.style.opacity = '0';
+                successElement.style.transform = 'translateY(-10px)';
+            }, 5000);
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-color: #128C7E;
+            --secondary-color: #075E54;
+            --light-color: #25D366;
+            --accent-color: #34B7F1;
+            --text-dark: #303030;
+            --text-light: #757575;
+            --text-muted: #999;
+            --bg-color: #FFFFFF;
+            --input-bg: #f8fafc;
+            --error-color: #ef4444;
+            --success-color: #10b981;
+            --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px rgba(0, 0, 0, 0.15);
+            --transition-normal: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            animation: gradientBG 15s ease infinite;
+            background-size: 400% 400%;
+            overflow: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .profile-container {
+            background-color: var(--bg-color);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg), 0 25px 50px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            animation: fadeInUp 0.8s ease-out;
+            transform: perspective(1000px) rotateY(0deg);
+            transition: var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            margin-bottom: 30px;
+            color: var(--text-dark);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            position: relative;
+            display: inline-block;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            width: 50%;
+            height: 3px;
+            bottom: -10px;
+            left: 25%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 10px;
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .profile-container:hover h2::after {
+            transform: scaleX(1);
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background-color: var(--input-bg);
+            color: var(--text-dark);
+            font-size: 16px;
+            transition: var(--transition-normal);
+            box-shadow: var(--shadow-sm);
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.15);
+            outline: none;
+            background-color: var(--bg-color);
+        }
+
+        .input-group.focused label {
+            transform: translateY(-25px) scale(0.8);
+            color: var(--primary-color);
+        }
+
+        .input-group label {
+            position: absolute;
+            left: 20px;
+            top: 16px;
+            color: var(--text-light);
+            pointer-events: none;
+            transition: var(--transition-normal);
+            transform-origin: left;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-weight: 500;
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition-normal);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 1px;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: var(--transition-normal);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(74, 108, 247, 0.3);
+        }
+
+        button:hover::before {
+            left: 100%;
+            transition: 0.7s;
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .profile-image-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .profile-image-container img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition-normal);
+        }
+
+        .profile-image-container:hover img {
+            box-shadow: 0 10px 20px rgba(74, 108, 247, 0.3);
+        }
+
+        .profile-image-container input {
+            display: none;
+        }
+
+        .profile-image-container label {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            padding: 8px;
+            cursor: pointer;
+            transition: var(--transition-normal);
+        }
+
+        .profile-image-container label:hover {
+            background-color: var(--secondary-color);
+        }
+
+        #success-message {
+            color: var(--success-color);
+            margin-top: 15px;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: var(--transition-normal);
+        }
+
+        @media (max-width: 768px) {
+            .profile-container {
+                padding: 30px;
+                width: 80%;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            input {
+                padding: 12px 15px;
+                font-size: 14px;
+            }
+
+            button {
+                padding: 14px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .profile-container {
+                padding: 20px;
+                width: 90%;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            input {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+
+            button {
+                padding: 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <h2>Profile</h2>
+        <form id="profileForm">
+            <div class="profile-image-container">
+                <img id="profileImage" src="https://via.placeholder.com/120" alt="Profile Image">
+                <input type="file" id="profileImageInput" accept="image/*">
+                <label for="profileImageInput"><i class="fas fa-camera"></i></label>
+            </div>
+            <div class="input-group">
+                <input type="text" id="profileName" required>
+                <label for="profileName">Full Name</label>
+            </div>
+            <button type="submit">Update Profile</button>
+        </form>
+        <div id="success-message"></div>
+    </div>
+</body>
+</html>

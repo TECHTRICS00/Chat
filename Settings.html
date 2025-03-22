@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Link to your CSS file here or use the embedded style -->
+</head>
+<body>
+    <div class="settings-container">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <p>Customize your experience</p>
+        </div>
+        
+        <div class="setting-group">
+            <label for="fontSize">Font Size</label>
+            <div class="range-with-value">
+                <input type="range" id="fontSize" name="fontSize" min="12" max="24" value="16">
+                <span class="value-display" id="fontSizeValue">16px</span>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label for="width">Chat Width</label>
+            <div class="range-with-value">
+                <input type="range" id="width" name="width" min="300" max="800" value="600">
+                <span class="value-display" id="widthValue">600px</span>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label for="height">Chat Height</label>
+            <div class="range-with-value">
+                <input type="range" id="height" name="height" min="400" max="800" value="600">
+                <span class="value-display" id="heightValue">600px</span>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <label for="theme">Theme</label>
+            <select id="theme" name="theme">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
+
+        <button id="saveSettings">
+            <i class="fas fa-save"></i> Save Settings
+        </button>
+    </div>
+
+    <script>
+        // Update value displays when sliders change
+        document.getElementById('fontSize').addEventListener('input', function() {
+            document.getElementById('fontSizeValue').textContent = this.value + 'px';
+        });
+        
+        document.getElementById('width').addEventListener('input', function() {
+            document.getElementById('widthValue').textContent = this.value + 'px';
+        });
+        
+        document.getElementById('height').addEventListener('input', function() {
+            document.getElementById('heightValue').textContent = this.value + 'px';
+        });
+
+        document.getElementById('saveSettings').addEventListener('click', () => {
+            const fontSize = document.getElementById('fontSize').value;
+            const width = document.getElementById('width').value;
+            const height = document.getElementById('height').value;
+            const theme = document.getElementById('theme').value;
+
+            localStorage.setItem('fontSize', fontSize);
+            localStorage.setItem('width', width);
+            localStorage.setItem('height', height);
+            localStorage.setItem('theme', theme);
+
+            applySettings();
+            
+            // Show feedback to user
+            alert('Settings saved successfully!');
+        });
+
+        function applySettings() {
+            const fontSize = localStorage.getItem('fontSize') || '16';
+            const width = localStorage.getItem('width') || '600';
+            const height = localStorage.getItem('height') || '600';
+            const theme = localStorage.getItem('theme') || 'light';
+
+            // Update slider display values
+            document.getElementById('fontSizeValue').textContent = fontSize + 'px';
+            document.getElementById('widthValue').textContent = width + 'px';
+            document.getElementById('heightValue').textContent = height + 'px';
+            
+            // Set slider positions
+            document.getElementById('fontSize').value = fontSize;
+            document.getElementById('width').value = width;
+            document.getElementById('height').value = height;
+            document.getElementById('theme').value = theme;
+
+            // Apply settings
+            document.body.style.fontSize = fontSize + 'px';
+
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', applySettings);
+    </script>
+</body>
+</html>
+<style>
+    /* Modern Settings Page CSS */
+:root {
+  --primary-color: #4a6cf7;
+  --primary-hover: #3a5cd7;
+  --light-bg: #f8f9fa;
+  --light-card: #ffffff;
+  --dark-bg: #1a1a1a;
+  --dark-card: #2d2d2d;
+  --dark-text: #f0f0f0;
+  --border-radius: 12px;
+  --box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--light-bg);
+  color: #333;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  transition: var(--transition);
+}
+
+.settings-container {
+  background-color: var(--light-card);
+  padding: 30px 35px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  width: 380px;
+  max-width: 90%;
+  transition: var(--transition);
+}
+
+.settings-header {
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.settings-header h2 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.settings-header p {
+  color: #777;
+  font-size: 14px;
+}
+
+.setting-group {
+  margin-bottom: 22px;
+}
+
+.setting-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 15px;
+  color: #555;
+}
+
+.range-with-value {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.range-with-value input[type="range"] {
+  flex: 1;
+}
+
+.value-display {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 5px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+}
+
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  font-size: 15px;
+  color: #333;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23131313%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px top 50%;
+  background-size: 12px auto;
+  cursor: pointer;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+.dark-mode .settings-container {
+  background-color: var(--dark-card);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.dark-mode .settings-header h2 {
+  color: var(--dark-text);
+}
+
+.dark-mode .settings-header p {
+  color: #aaa;
+}
+
+.dark-mode .setting-group label {
+  color: #ccc;
+}
+
+.dark-mode input[type="range"] {
+  background: #555;
+}
+
+.dark-mode select {
+  background-color: #444;
+  border-color: #555;
+  color: var(--dark-text);
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .settings-container {
+    padding: 25px 20px;
+    width: 100%;
+    max-width: 95%;
+  }
+}
+</style>
